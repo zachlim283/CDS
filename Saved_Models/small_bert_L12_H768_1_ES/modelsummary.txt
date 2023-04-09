@@ -1,0 +1,67 @@
+Model: "model"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ Input (InputLayer)             [(None,)]            0           []                               
+                                                                                                  
+ Preprocessing (KerasLayer)     {'input_type_ids':   0           ['Input[0][0]']                  
+                                (None, 128),                                                      
+                                 'input_mask': (Non                                               
+                                e, 128),                                                          
+                                 'input_word_ids':                                                
+                                (None, 128)}                                                      
+                                                                                                  
+ BERT_Encoder (KerasLayer)      {'pooled_output': (  109482241   ['Preprocessing[0][0]',          
+                                None, 768),                       'Preprocessing[0][1]',          
+                                 'sequence_output':               'Preprocessing[0][2]']          
+                                 (None, 128, 768),                                                
+                                 'encoder_outputs':                                               
+                                 [(None, 128, 768),                                               
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768),                                                
+                                 (None, 128, 768)],                                               
+                                 'default': (None,                                                
+                                768)}                                                             
+                                                                                                  
+ Dropout_0.5_1 (Dropout)        (None, 768)          0           ['BERT_Encoder[0][13]']          
+                                                                                                  
+ Selu (Dense)                   (None, 256)          196864      ['Dropout_0.5_1[0][0]']          
+                                                                                                  
+ Dropout_0.5_2 (Dropout)        (None, 256)          0           ['Selu[0][0]']                   
+                                                                                                  
+ Classifier (Dense)             (None, 3)            771         ['Dropout_0.5_2[0][0]']          
+                                                                                                  
+==================================================================================================
+Total params: 109,679,876
+Trainable params: 109,679,875
+Non-trainable params: 1
+__________________________________________________________________________________________________
+
+Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2
+
+===== Parameters =====
+Batch Size: 32
+Epochs: 7/50
+Learning Rate: 0.0001
+
+====== Results =======
+              precision    recall  f1-score   support
+
+           0      0.725     0.847     0.781      1256
+           1      0.652     0.511     0.573       521
+           2      0.642     0.565     0.601       833
+
+    accuracy                          0.690      2610
+   macro avg      0.673     0.641     0.652      2610
+weighted avg      0.684     0.690     0.682      2610
+
+Weighted F1: 0.68203232
+Loss: 0.776280403137207

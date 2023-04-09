@@ -161,13 +161,12 @@ with open(checkpoint_path + '/modelsummary.txt', 'w') as f:
     loaded_model.summary(print_fn=lambda x: f.write(x + '\n'))
     f.write(f'\nModel trained using {tf_hub_encoder}\n')
     f.write(f'\n===== Parameters =====\n')
-    f.write(f'Batch Size: {BATCH_SIZE}\nEpochs: {EPOCHS}\nLearning Rate: {LR}\n')
+    f.write(f'Batch Size: {BATCH_SIZE}\nEpochs: {len(acc)}/{EPOCHS}\nLearning Rate: {LR}\n')
     f.write(f'\n====== Results =======\n')
     f.write(metrics.classification_report(test_labels_flat, predicted, digits=3))
     f.write(f"\nLoss: {loss}")
 f.close()
 
 print(f'Loss: {loss}')
-print(f'Accuracy: {accuracy}')
 
 plt.show()

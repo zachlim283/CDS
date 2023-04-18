@@ -1,0 +1,50 @@
+Model: "model_1"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ text (InputLayer)              [(None,)]            0           []                               
+                                                                                                  
+ audio (InputLayer)             [(None, 300)]        0           []                               
+                                                                                                  
+ model (Functional)             (None, 768)          109482241   ['text[0][0]']                   
+                                                                                                  
+ sequential (Sequential)        (None, 300)          0           ['audio[0][0]']                  
+                                                                                                  
+ concatenate (Concatenate)      (None, 1068)         0           ['model[0][0]',                  
+                                                                  'sequential[0][0]']             
+                                                                                                  
+ Dropout_0.5_1 (Dropout)        (None, 1068)         0           ['concatenate[0][0]']            
+                                                                                                  
+ Selu_1 (Dense)                 (None, 768)          820992      ['Dropout_0.5_1[0][0]']          
+                                                                                                  
+ Dropout_0.5_2 (Dropout)        (None, 768)          0           ['Selu_1[0][0]']                 
+                                                                                                  
+ Selu_2 (Dense)                 (None, 256)          196864      ['Dropout_0.5_2[0][0]']          
+                                                                                                  
+ Classifier (Dense)             (None, 3)            771         ['Selu_2[0][0]']                 
+                                                                                                  
+==================================================================================================
+Total params: 110,500,868
+Trainable params: 110,500,867
+Non-trainable params: 1
+__________________________________________________________________________________________________
+
+Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2
+
+===== Parameters =====
+Batch Size: 32
+Epochs: 18/50
+Learning Rate: 1e-05
+
+====== Results =======
+              precision    recall  f1-score   support
+
+           0      0.784     0.750     0.766      1256
+           1      0.575     0.651     0.610       521
+           2      0.632     0.621     0.626       833
+
+    accuracy                          0.689      2610
+   macro avg      0.663     0.674     0.668      2610
+weighted avg      0.694     0.689     0.691      2610
+
+Loss: 0.778947114944458

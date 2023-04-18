@@ -1,5 +1,3 @@
-# ! py -m pip install tensorflow_hub
-# ! py -m pip install tensorflow_text
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -12,6 +10,23 @@ from matplotlib import pyplot as plt
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
 
+
+# ===================================== Parameters =====================================
+BATCH_SIZE = 32
+EPOCHS = 50
+LR = 0.00001
+ES_PATIENCE = 5
+LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
+METRICS = [tf.metrics.CategoricalAccuracy()]
+OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
+
+CHECKPOINT_PATH = "Saved_Models/combined_model_4"
+
+tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
+tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
+
+
+# ======================================== Admin =======================================
 gpu_avail = "No" if len(tf.config.list_physical_devices('GPU')) == 0 else "Yes"
 print(f"GPU Available?: {gpu_avail}")
 
@@ -26,14 +41,7 @@ videoIDs, videoSpeakers, _, videoText, \
 
 train_keys = [x for x in trainVid]
 test_keys = [x for x in testVid]
-# ============================= **Zach's Dataset Cleaning** =========================
-BATCH_SIZE = 32
-# LOSS = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
-# METRICS = [tf.metrics.SparseCategoricalAccuracy()]
-LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
-METRICS = [tf.metrics.CategoricalAccuracy()]
-EPOCHS = 50
-LR = 0.00001
+
 
 # ================================== Prepare Datasets ==================================
 # Train + Val Datasets
@@ -60,7 +68,6 @@ test_text_flat = np.array([item for sublist in test_text for item in sublist], d
 test_labels_flat = np.array([item for sublist in test_labels for item in sublist], dtype=int)
 
 test_ds = tf.data.Dataset.from_tensor_slices((test_text_flat, test_labels_flat)).batch(BATCH_SIZE)
-print("Complete!")
 
 
 # ================================== Kevin's Datasets Cleaning ==================================
@@ -105,8 +112,8 @@ X_test, y_test = flatten_audio_and_labels(videoAudio, videoLabels, test_keys)
 
 # max_length = max([(X.shape[0]) for x in X])
 # input_shape = (max_length, 74)
-batch_size = 32
-num_epochs = 30
+# batch_size = 32
+# num_epochs = 30
 
 # ================= Split data into test train and val ==================
 X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=0)
@@ -127,11 +134,11 @@ speech_test_ds = tf.data.Dataset.from_tensor_slices(
 speech_val_ds = tf.data.Dataset.from_tensor_slices(
     ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
 
+print("Datasets Generated!")
+print("Building Models...")
+
+
 # ================================ Bert model ==============================
-tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
-tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
-
-
 def sentiment_classifier():
     input_layer = tf.keras.layers.Input(shape=(), dtype=tf.string, name='Input')
 
@@ -145,6 +152,7 @@ def sentiment_classifier():
     # x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
     # x = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
     return tf.keras.Model(input_layer, x)
+
 
 text_model = sentiment_classifier()
 
@@ -168,7 +176,7 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     audio_input_shape = (300,)
 
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
-    audio_input = tf.keras.layers.Input(shape=(audio_input_shape), name='audio')
+    audio_input = tf.keras.layers.Input(shape=audio_input_shape, name='audio')
 
     text_projections = text_model(text_input)
     audio_projections = audio_model(audio_input)
@@ -182,20 +190,18 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     concatenated = tf.keras.layers.Concatenate()([text_projections, audio_projections])
     # contextual = keras.layers.Concatenate()([concatenated, query_value_attention_seq])
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(concatenated)
-    x = tf.keras.layers.Dense(768, activation=tf.keras.activations.selu, name='Selu')(x)
+    x = tf.keras.layers.Dense(512, activation=tf.keras.activations.selu, name='Selu_1')(x)
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
-    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu')(x)
+    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu_2')(x)
     outputs = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
 
     return tf.keras.Model([text_input, audio_input], outputs)
 
 
 # ====================================== Callbacks =====================================
-checkpoint_path = "Saved_Models/combined_model_3"
-
 callbacks = [
     tf.keras.callbacks.ModelCheckpoint(
-        checkpoint_path,
+        CHECKPOINT_PATH,
         monitor='val_loss',
         verbose=0,
         save_best_only=True,
@@ -205,18 +211,16 @@ callbacks = [
     ),
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=10,
+        patience=ES_PATIENCE,
         restore_best_weights=True
     )]
 
 # ===================================== Train Model ====================================
+print("Models Built!")
 print("Starting Training...")
 speech_model = concatenated_model(text_model, audio_model)
-tf.keras.utils.plot_model(speech_model, show_shapes=True)
 
-optimizer = tf.keras.optimizers.Adam(learning_rate=LR)
-
-speech_model.compile(optimizer=optimizer,
+speech_model.compile(optimizer=OPTIMIZER,
                      loss=LOSS,
                      metrics=METRICS)
 
@@ -227,7 +231,13 @@ history = speech_model.fit(speech_train_ds,
                            epochs=EPOCHS,
                            verbose=1,
                            validation_data=speech_val_ds)
-print("Complete!")
+
+tf.keras.utils.plot_model(speech_model,
+                          show_shapes=True,
+                          show_layer_activations=True,
+                          to_file=CHECKPOINT_PATH + '/model.png')
+print("Training Complete!")
+
 
 # =================================== Evaluate Model ===================================
 history_dict = history.history
@@ -258,14 +268,14 @@ plt.xlabel('Epochs')
 plt.ylabel('Accuracy')
 plt.legend(loc='lower right')
 
-plt.savefig(checkpoint_path + '/loss_graph.png')
+plt.savefig(CHECKPOINT_PATH + '/loss_graph.png')
 
-loaded_model = tf.keras.models.load_model(checkpoint_path)
+loaded_model = tf.keras.models.load_model(CHECKPOINT_PATH)
 loss, accuracy = loaded_model.evaluate(speech_test_ds)
 
 predicted = np.array([np.argmax(x) for x in loaded_model.predict(speech_test_ds, verbose=1)])
 
-with open(checkpoint_path + '/modelsummary.txt', 'w') as f:
+with open(CHECKPOINT_PATH + '/modelsummary.txt', 'w') as f:
     loaded_model.summary(print_fn=lambda x: f.write(x + '\n'))
     f.write(f'\nModel trained using {tf_hub_encoder}\n')
     f.write(f'\n===== Parameters =====\n')
@@ -283,7 +293,6 @@ plt.show()
 import pandas as pd
 import plotly.express as px
 from sklearn.metrics import confusion_matrix
-from keras import backend as K
 
 # values for scatter plot will be obtained using softmax probability table
 intermediate_layer_model = tf.keras.Model(inputs=speech_model.input,

@@ -1,6 +1,7 @@
 # ! py -m pip install tensorflow_hub
 # ! py -m pip install tensorflow_text
 import os
+
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 import numpy as np
 import pickle
@@ -32,7 +33,7 @@ BATCH_SIZE = 32
 LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 EPOCHS = 50
-LR = 0.0001
+LR = 0.00001
 
 # ================================== Prepare Datasets ==================================
 # Train + Val Datasets
@@ -126,7 +127,6 @@ speech_test_ds = tf.data.Dataset.from_tensor_slices(
 speech_val_ds = tf.data.Dataset.from_tensor_slices(
     ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
 
-
 # ================================ Bert model ==============================
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -140,28 +140,23 @@ def sentiment_classifier():
     encoder = hub.KerasLayer(tf_hub_encoder, trainable=True, name='BERT_Encoder')
     outputs = encoder(encoder_inputs)
     x = outputs['pooled_output']
-    x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(x)
-    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu')(x)
+    # x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(x)
+    # x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu')(x)
     # x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
     # x = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
     return tf.keras.Model(input_layer, x)
 
-
-# sc_model = sentiment_classifier()
-
 text_model = sentiment_classifier()
-print("Complete!")
 
-# text_model = sentiment_classifier()
 
 # ===================== Logistic regression for pretrained Audio features ===================
 audio_model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(audio_input_shape)),
     # tf.keras.layers.SimpleRNN(128, input_shape=(input_shape),return_sequences=True),
-    tf.keras.layers.Dense(64, activation='relu'),
-    tf.keras.layers.Dropout(rate=0.2),
+    # tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu'),
+    # tf.keras.layers.Dropout(rate=0.2),
     tf.keras.layers.Flatten(),
-    tf.keras.layers.Dropout(rate=0.2)
+    # tf.keras.layers.Dropout(rate=0.2)
     # tf.keras.layers.Dense(3, activation='softmax')
 ])
 
@@ -187,15 +182,16 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     concatenated = tf.keras.layers.Concatenate()([text_projections, audio_projections])
     # contextual = keras.layers.Concatenate()([concatenated, query_value_attention_seq])
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(concatenated)
-    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu')(x)
+    x = tf.keras.layers.Dense(768, activation=tf.keras.activations.selu, name='Selu')(x)
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
+    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu')(x)
     outputs = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
 
     return tf.keras.Model([text_input, audio_input], outputs)
 
 
 # ====================================== Callbacks =====================================
-checkpoint_path = "Saved_Models/combined_model"
+checkpoint_path = "Saved_Models/combined_model_3"
 
 callbacks = [
     tf.keras.callbacks.ModelCheckpoint(
@@ -209,10 +205,9 @@ callbacks = [
     ),
     tf.keras.callbacks.EarlyStopping(
         monitor='val_loss',
-        patience=5,
+        patience=10,
         restore_best_weights=True
     )]
-
 
 # ===================================== Train Model ====================================
 print("Starting Training...")
@@ -233,7 +228,6 @@ history = speech_model.fit(speech_train_ds,
                            verbose=1,
                            validation_data=speech_val_ds)
 print("Complete!")
-
 
 # =================================== Evaluate Model ===================================
 history_dict = history.history
@@ -285,7 +279,6 @@ print(f'Loss: {loss}')
 
 plt.show()
 
-
 # =================================== Visualisation ====================================
 import pandas as pd
 import plotly.express as px
@@ -294,14 +287,13 @@ from keras import backend as K
 
 # values for scatter plot will be obtained using softmax probability table
 intermediate_layer_model = tf.keras.Model(inputs=speech_model.input,
-                                 outputs=speech_model.get_layer('Classifier').output)
+                                          outputs=speech_model.get_layer('Classifier').output)
 intermediate_output = intermediate_layer_model.predict(speech_test_ds)
 
 df = pd.DataFrame(intermediate_output)
-fig = px.scatter_3d(df, x='0',
-                    y='1',
-                    z='2',
-                    color='sentiments')
+fig = px.scatter_3d(df, x=0,
+                        y=1,
+                        z=2)
 
 fig.show()
 # summary will be done by extracting the confusion matrix

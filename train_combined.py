@@ -20,7 +20,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_4"
+CHECKPOINT_PATH = "Saved_Models/combined_model_5"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -29,6 +29,14 @@ tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
 # ======================================== Admin =======================================
 gpu_avail = "No" if len(tf.config.list_physical_devices('GPU')) == 0 else "Yes"
 print(f"GPU Available?: {gpu_avail}")
+
+if os.path.isdir(CHECKPOINT_PATH):
+    overwrite = input("Model already exists. Overwrite? (Y/N)")
+    if overwrite.lower() != "y":
+        print("Quitting...")
+        exit()
+
+    print("Continuing...")
 
 print("Preparing dataset...")
 with open("DialogueRNN_features/MELD_features/MELD_features_raw.pkl", 'rb') as f:
@@ -186,13 +194,15 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     # [text_projections, audio_projections]
     # )
 
-    # concatenate, add more layers and classify
+    # Concatenate features and classify
     concatenated = tf.keras.layers.Concatenate()([text_projections, audio_projections])
     # contextual = keras.layers.Concatenate()([concatenated, query_value_attention_seq])
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(concatenated)
     x = tf.keras.layers.Dense(512, activation=tf.keras.activations.selu, name='Selu_1')(x)
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
     x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu_2')(x)
+    x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_3')(x)
+    x = tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu_3')(x)
     outputs = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
 
     return tf.keras.Model([text_input, audio_input], outputs)
@@ -232,17 +242,16 @@ history = speech_model.fit(speech_train_ds,
                            verbose=1,
                            validation_data=speech_val_ds)
 
-tf.keras.utils.plot_model(speech_model,
-                          show_shapes=True,
-                          show_layer_activations=True,
-                          to_file=CHECKPOINT_PATH + '/model.png')
 print("Training Complete!")
 
 
 # =================================== Evaluate Model ===================================
-history_dict = history.history
+tf.keras.utils.plot_model(speech_model,
+                          show_shapes=True,
+                          show_layer_activations=True,
+                          to_file=CHECKPOINT_PATH + '/combined_model.png')
 
-print(history_dict)
+history_dict = history.history
 
 acc = history_dict['categorical_accuracy']
 val_acc = history_dict['val_categorical_accuracy']

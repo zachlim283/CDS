@@ -21,11 +21,15 @@ ________________________________________________________________________________
                                                                                                   
  Selu_2 (Dense)                 (None, 256)          131328      ['Dropout_0.5_2[0][0]']          
                                                                                                   
- Classifier (Dense)             (None, 3)            771         ['Selu_2[0][0]']                 
+ Dropout_0.5_3 (Dropout)        (None, 256)          0           ['Selu_2[0][0]']                 
+                                                                                                  
+ Selu_3 (Dense)                 (None, 64)           16448       ['Dropout_0.5_3[0][0]']          
+                                                                                                  
+ Classifier (Dense)             (None, 3)            195         ['Selu_3[0][0]']                 
                                                                                                   
 ==================================================================================================
-Total params: 110,161,668
-Trainable params: 110,161,667
+Total params: 110,177,540
+Trainable params: 110,177,539
 Non-trainable params: 1
 __________________________________________________________________________________________________
 
@@ -33,18 +37,18 @@ Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12
 
 ===== Parameters =====
 Batch Size: 32
-Epochs: 8/50
+Epochs: 9/50
 Learning Rate: 1e-05
 
 ====== Results =======
               precision    recall  f1-score   support
 
-           0      0.763     0.795     0.779      1256
-           1      0.602     0.605     0.603       521
-           2      0.648     0.605     0.626       833
+           0      0.775     0.778     0.777      1256
+           1      0.568     0.666     0.613       521
+           2      0.648     0.575     0.609       833
 
-    accuracy                          0.697      2610
-   macro avg      0.671     0.668     0.669      2610
-weighted avg      0.694     0.697     0.695      2610
+    accuracy                          0.691      2610
+   macro avg      0.664     0.673     0.666      2610
+weighted avg      0.693     0.691     0.691      2610
 
-Loss: 0.7834321856498718
+Loss: 0.8235111236572266

@@ -37,18 +37,18 @@ Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12
 
 ===== Parameters =====
 Batch Size: 32
-Epochs: 9/50
+Epochs: 11/50
 Learning Rate: 1e-05
 
 ====== Results =======
               precision    recall  f1-score   support
 
-           0      0.775     0.778     0.777      1256
-           1      0.568     0.666     0.613       521
-           2      0.648     0.575     0.609       833
+           0      0.722     0.881     0.794      1256
+           1      0.609     0.601     0.605       521
+           2      0.737     0.498     0.595       833
 
-    accuracy                          0.691      2610
-   macro avg      0.664     0.673     0.666      2610
-weighted avg      0.693     0.691     0.691      2610
+    accuracy                          0.703      2610
+   macro avg      0.689     0.660     0.664      2610
+weighted avg      0.704     0.703     0.693      2610
 
-Loss: 0.8235111236572266
+Loss: 0.8946354389190674

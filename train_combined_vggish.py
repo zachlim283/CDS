@@ -150,8 +150,6 @@ for dialogue_id in videoLabels.keys():
             decoded_list = get_vggish_embeddings(filename)
             if len(decoded_list) == 0:
                 continue
-            if len(decoded_list) < 33: # max utterances is 33, add padding otherwise
-                decoded_list.append([]*33-len(decoded_list))
             vggish_embeddings_train.append(decoded_list)
             vggish_train_keys.append((dialogue_id, utterance_id))
         except:
@@ -166,6 +164,7 @@ for dialogue_id in videoLabels.keys():
 # use text_val, vgg_val, val_labels
 # use text_test, vgg_test, test_labels
 
+vggish_embeddings_train = [(x + [[0]]*(42-len(x))) for x in vggish_embeddings_train] # add padding to ensure correct size
 labels_flat = np.array([videoLabels[x[0]][x[1]] for x in vggish_train_keys])
 text_flat = np.array([videoText[x[0]][x[1]] for x in vggish_train_keys])
 
@@ -237,7 +236,7 @@ audio_model = tf.keras.Sequential([
 def concatenated_model(text_model=text_model, audio_model=audio_model):
     # get encoders
     # get embedding projections:
-    audio_input_shape = (33,)
+    audio_input_shape = (42,)
 
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
     audio_input = tf.keras.layers.Input(shape=audio_input_shape, name='audio')

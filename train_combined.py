@@ -21,7 +21,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_7"
+CHECKPOINT_PATH = "Saved_Models/combined_model_8"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -221,9 +221,9 @@ audio_model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(audio_input_shape)),
     # tf.keras.layers.SimpleRNN(128, input_shape=(input_shape),return_sequences=True),
     # tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu'),
-    # tf.keras.layers.Dropout(rate=0.2),
+    # tf.keras.layers.Dropout(rate=0.5),
     tf.keras.layers.Flatten(),
-    # tf.keras.layers.Dropout(rate=0.2)
+    # tf.keras.layers.Dropout(rate=0.5),
     # tf.keras.layers.Dense(3, activation='softmax')
 ])
 

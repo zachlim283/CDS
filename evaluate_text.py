@@ -7,7 +7,6 @@ import numpy as np
 import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow_text as text
-import matplotlib.pyplot as plt
 from sklearn import metrics
 
 
@@ -57,7 +56,6 @@ for raw, pred, true in zip(raw_predictions.tolist(), predicted_labels.tolist(), 
     print(type(raw), type(pred), type(true))
     print(raw, pred, true)
 
-    print
 
 with open(model_path + '/raw_predictions.txt', 'w') as f:
     pass

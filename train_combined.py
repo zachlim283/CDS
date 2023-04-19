@@ -6,7 +6,6 @@ import pickle
 import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow_text as text
-from sys import exit
 from matplotlib import pyplot as plt
 from sklearn import metrics
 from sklearn.model_selection import train_test_split

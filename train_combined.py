@@ -1,8 +1,10 @@
 import os
 
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-import numpy as np
 import pickle
+import numpy as np
+import pandas as pd
+import plotly.express as px
 import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow_text as text
@@ -20,7 +22,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_8"
+CHECKPOINT_PATH = "Saved_Models/combined_model_6"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -219,8 +221,8 @@ text_model = sentiment_classifier()
 audio_model = tf.keras.Sequential([
     tf.keras.layers.Input(shape=(audio_input_shape)),
     # tf.keras.layers.SimpleRNN(128, input_shape=(input_shape),return_sequences=True),
-    # tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu'),
     # tf.keras.layers.Dropout(rate=0.5),
+    # tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu'),
     tf.keras.layers.Flatten(),
     # tf.keras.layers.Dropout(rate=0.5),
     # tf.keras.layers.Dense(3, activation='softmax')
@@ -248,11 +250,11 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     concatenated = tf.keras.layers.Concatenate()([text_projections, audio_projections])
     # contextual = keras.layers.Concatenate()([concatenated, query_value_attention_seq])
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_1')(concatenated)
-    x = tf.keras.layers.Dense(512, activation=tf.keras.activations.selu, name='Selu_1')(x)
+    x = tf.keras.layers.Dense(512, activation=tf.keras.activations.relu, name='Relu_1')(x)
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_2')(x)
-    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.selu, name='Selu_2')(x)
+    x = tf.keras.layers.Dense(256, activation=tf.keras.activations.relu, name='Relu_2')(x)
     x = tf.keras.layers.Dropout(0.5, name='Dropout_0.5_3')(x)
-    x = tf.keras.layers.Dense(64, activation=tf.keras.activations.selu, name='Selu_3')(x)
+    x = tf.keras.layers.Dense(64, activation=tf.keras.activations.relu, name='Relu_3')(x)
     outputs = tf.keras.layers.Dense(3, activation=tf.keras.activations.softmax, name='Classifier')(x)
 
     return tf.keras.Model([text_input, audio_input], outputs)
@@ -296,6 +298,16 @@ print("Training Complete!")
 
 
 # =================================== Evaluate Model ===================================
+tf.keras.utils.plot_model(text_model,
+                          show_shapes=True,
+                          show_layer_activations=True,
+                          to_file=CHECKPOINT_PATH + '/text_model.png')
+
+tf.keras.utils.plot_model(audio_model,
+                          show_shapes=True,
+                          show_layer_activations=True,
+                          to_file=CHECKPOINT_PATH + '/audio_model.png')
+
 tf.keras.utils.plot_model(speech_model,
                           show_shapes=True,
                           show_layer_activations=True,
@@ -332,7 +344,8 @@ plt.savefig(CHECKPOINT_PATH + '/loss_graph.png')
 loaded_model = tf.keras.models.load_model(CHECKPOINT_PATH)
 loss, accuracy = loaded_model.evaluate(speech_test_ds)
 
-predicted = np.array([np.argmax(x) for x in loaded_model.predict(speech_test_ds, verbose=1)])
+raw_predictions = loaded_model.predict(speech_test_ds, verbose=1)
+predicted_labels = np.array([np.argmax(x) for x in raw_predictions])
 
 with open(CHECKPOINT_PATH + '/modelsummary.txt', 'w') as f:
     loaded_model.summary(print_fn=lambda x: f.write(x + '\n'))
@@ -340,7 +353,7 @@ with open(CHECKPOINT_PATH + '/modelsummary.txt', 'w') as f:
     f.write(f'\n===== Parameters =====\n')
     f.write(f'Batch Size: {BATCH_SIZE}\nEpochs: {len(acc)}/{EPOCHS}\nLearning Rate: {LR}\n')
     f.write(f'\n====== Results =======\n')
-    f.write(metrics.classification_report(test_labels_flat, predicted, digits=3))
+    f.write(metrics.classification_report(test_labels_flat, predicted_labels, digits=3))
     f.write(f"\nLoss: {loss}")
 f.close()
 
@@ -348,25 +361,34 @@ print(f'Loss: {loss}')
 
 plt.show()
 
+
 # =================================== Visualisation ====================================
-import pandas as pd
-import plotly.express as px
-from sklearn.metrics import confusion_matrix
+df = pd.DataFrame(raw_predictions)
+df['pred'] = predicted_labels
+df['true'] = test_labels_flat
+df['correct'] = np.where(df['pred'] == df['true'], df['true'], 3)
+df['wrong'] = np.where(df['pred'] != df['true'], df['true'], 3)
 
-# values for scatter plot will be obtained using softmax probability table
-intermediate_layer_model = tf.keras.Model(inputs=speech_model.input,
-                                          outputs=speech_model.get_layer('Classifier').output)
-intermediate_output = intermediate_layer_model.predict(speech_test_ds)
+fig1 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='true', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.33, "rgb(0, 0, 102)"),
+                                             (0.33, "rgb(204, 0, 0)"), (0.66, "rgb(204, 0, 0)"),
+                                             (0.66, "rgb(255, 153, 0)"), (1.00, "rgb(255, 153, 0)")])
 
-df = pd.DataFrame(intermediate_output)
-fig = px.scatter_3d(df, x=0,
-                        y=1,
-                        z=2)
+fig2 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='correct', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.25, "rgb(0, 0, 102)"),
+                                             (0.25, "rgb(204, 0, 0)"), (0.50, "rgb(204, 0, 0)"),
+                                             (0.50, "rgb(255, 153, 0)"), (0.75, "rgb(255, 153, 0)"),
+                                             (0.75, "rgb(179, 179, 179)"), (1.00, "rgb(179, 179, 179)")])
 
-fig.show()
+fig3 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='wrong', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.25, "rgb(0, 0, 102)"),
+                                             (0.25, "rgb(204, 0, 0)"), (0.50, "rgb(204, 0, 0)"),
+                                             (0.50, "rgb(255, 153, 0)"), (0.75, "rgb(255, 153, 0)"),
+                                             (0.75, "rgb(179, 179, 179)"), (1.00, "rgb(179, 179, 179)")])
 
-# Confusion matrix
-# predict_class = np.argmax(intermediate_output, axis=1)
-# cm = confusion_matrix(y_test, predict_class)
-
-# print(cm)
+fig1.show()
+fig2.show()
+fig3.show()

@@ -15,17 +15,17 @@ ________________________________________________________________________________
                                                                                                   
  Dropout_0.5_1 (Dropout)        (None, 1068)         0           ['concatenate[0][0]']            
                                                                                                   
- Selu_1 (Dense)                 (None, 512)          547328      ['Dropout_0.5_1[0][0]']          
+ Relu_1 (Dense)                 (None, 512)          547328      ['Dropout_0.5_1[0][0]']          
                                                                                                   
- Dropout_0.5_2 (Dropout)        (None, 512)          0           ['Selu_1[0][0]']                 
+ Dropout_0.5_2 (Dropout)        (None, 512)          0           ['Relu_1[0][0]']                 
                                                                                                   
- Selu_2 (Dense)                 (None, 256)          131328      ['Dropout_0.5_2[0][0]']          
+ Relu_2 (Dense)                 (None, 256)          131328      ['Dropout_0.5_2[0][0]']          
                                                                                                   
- Dropout_0.5_3 (Dropout)        (None, 256)          0           ['Selu_2[0][0]']                 
+ Dropout_0.5_3 (Dropout)        (None, 256)          0           ['Relu_2[0][0]']                 
                                                                                                   
- Selu_3 (Dense)                 (None, 64)           16448       ['Dropout_0.5_3[0][0]']          
+ Relu_3 (Dense)                 (None, 64)           16448       ['Dropout_0.5_3[0][0]']          
                                                                                                   
- Classifier (Dense)             (None, 3)            195         ['Selu_3[0][0]']                 
+ Classifier (Dense)             (None, 3)            195         ['Relu_3[0][0]']                 
                                                                                                   
 ==================================================================================================
 Total params: 110,177,540
@@ -37,18 +37,18 @@ Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12
 
 ===== Parameters =====
 Batch Size: 32
-Epochs: 13/50
+Epochs: 11/50
 Learning Rate: 1e-05
 
 ====== Results =======
               precision    recall  f1-score   support
 
-           0      0.737     0.842     0.786      1256
-           1      0.568     0.658     0.610       521
-           2      0.718     0.492     0.584       833
+           0      0.779     0.760     0.769      1256
+           1      0.612     0.608     0.610       521
+           2      0.641     0.667     0.654       833
 
-    accuracy                          0.693      2610
-   macro avg      0.674     0.664     0.660      2610
-weighted avg      0.697     0.693     0.686      2610
+    accuracy                          0.700      2610
+   macro avg      0.677     0.678     0.678      2610
+weighted avg      0.702     0.700     0.701      2610
 
-Loss: 0.7559869885444641
+Loss: 0.7396063804626465

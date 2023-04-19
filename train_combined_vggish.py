@@ -16,11 +16,11 @@ BATCH_SIZE = 32
 EPOCHS = 50
 LR = 0.00001
 ES_PATIENCE = 5
-LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
-METRICS = [tf.metrics.CategoricalAccuracy()]
+LOSS = tf.keras.losses.SparseCategoricalCrossentropy(from_logits=False)
+METRICS = [tf.metrics.SparseCategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_8"
+CHECKPOINT_PATH = "Saved_Models/combined_model_vgg_1"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -121,7 +121,7 @@ X_test, y_test = flatten_audio_and_labels(videoAudio, videoLabels, test_keys)
 # Split data into test train and val
 X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=0)
 
-audio_input_shape = (300,)
+audio_input_shape = (42, 16,)
 output_shape = (None, 1)
 y_train, y_val, y_test = oneHot(y_train, y_val, y_test)
 
@@ -143,15 +143,18 @@ def get_vggish_embeddings(filename):
 
 vggish_embeddings_train = []
 vggish_train_keys = []
+
 for dialogue_id in videoLabels.keys():
     for utterance_id in range(len(videoLabels[dialogue_id])):
         filename = f'./train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
+
         try:
             decoded_list = get_vggish_embeddings(filename)
             if len(decoded_list) == 0:
                 continue
             vggish_embeddings_train.append(decoded_list)
             vggish_train_keys.append((dialogue_id, utterance_id))
+
         except:
             print(f"{filename} needs to be deleted")
 
@@ -164,19 +167,18 @@ for dialogue_id in videoLabels.keys():
 # use text_val, vgg_val, val_labels
 # use text_test, vgg_test, test_labels
 
-vggish_embeddings_train = [(x + [[0]]*(42-len(x))) for x in vggish_embeddings_train] # add padding to ensure correct size
+vggish_embeddings_train = [(x + [[0]*16]*(42-len(x))) for x in vggish_embeddings_train] # add padding to ensure correct size
 labels_flat = np.array([videoLabels[x[0]][x[1]] for x in vggish_train_keys])
-text_flat = np.array([videoText[x[0]][x[1]] for x in vggish_train_keys])
+text_flat = np.array([videoSentence[x[0]][x[1]] for x in vggish_train_keys])
 
 # use traintestsplit to get val and test split
 vgg_train_embedding = np.asarray(vggish_embeddings_train)
-vgg_train2, vgg_test, labels2_flat, test_labels = train_test_split(vgg_train_embedding, labels_flat,random_state=0)
-vgg_train, vgg_val, labels, val_labels = train_test_split(vgg_train2,labels2_flat,random_state=0)
+vgg_train2, vgg_test, labels2_flat, test_labels = train_test_split(vgg_train_embedding, labels_flat, random_state=0)
+vgg_train, vgg_val, labels, val_labels = train_test_split(vgg_train2, labels2_flat, random_state=0)
 
-text_train2, text_test, _, _ = train_test_split(text_flat, labels_flat,random_state=0)
-text_train, text_val, _, _ = train_test_split(text_train2,labels2_flat,random_state=0)
+text_train2, text_test, _, _ = train_test_split(text_flat, labels_flat, random_state=0)
+text_train, text_val, _, _ = train_test_split(text_train2, labels2_flat, random_state=0)
 
-print(len(text_train), len(vgg_train))
 
 
 # ============================== Create combined dataset ==================================
@@ -193,9 +195,9 @@ print(len(text_train), len(vgg_train))
 speech_train_ds = tf.data.Dataset.from_tensor_slices((
     {"audio": vgg_train.astype(np.float64), "text": text_train}, labels)).batch(BATCH_SIZE)
 speech_test_ds = tf.data.Dataset.from_tensor_slices((
-    {"audio":vgg_test.astype(np.float64), "text":text_test}, test_labels)).batch(BATCH_SIZE)
+    {"audio": vgg_test.astype(np.float64), "text": text_test}, test_labels)).batch(BATCH_SIZE)
 speech_val_ds = tf.data.Dataset.from_tensor_slices((
-    {"audio:":vgg_val.astype(np.float64), "text":text_val}, val_labels)).batch(BATCH_SIZE)
+    {"audio": vgg_val.astype(np.float64), "text": text_val}, val_labels)).batch(BATCH_SIZE)
 
 print("Datasets Generated!")
 print("Building Models...")
@@ -236,7 +238,7 @@ audio_model = tf.keras.Sequential([
 def concatenated_model(text_model=text_model, audio_model=audio_model):
     # get encoders
     # get embedding projections:
-    audio_input_shape = (42,)
+    audio_input_shape = (42, 16,)
 
     text_input = tf.keras.layers.Input(shape=(), dtype=tf.string, name='text')
     audio_input = tf.keras.layers.Input(shape=audio_input_shape, name='audio')

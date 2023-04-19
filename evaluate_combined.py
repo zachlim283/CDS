@@ -114,12 +114,29 @@ print(metrics.classification_report(test_labels_flat, predicted_labels, digits=3
 df = pd.DataFrame(raw_predictions)
 df['pred'] = predicted_labels
 df['true'] = test_labels_flat
+df['correct'] = np.where(df['pred'] == df['true'], df['true'], 3)
+df['wrong'] = np.where(df['pred'] != df['true'], df['true'], 3)
 
-print(df)
+fig1 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='true', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.33, "rgb(0, 0, 102)"),
+                                             (0.33, "rgb(204, 0, 0)"), (0.66, "rgb(204, 0, 0)"),
+                                             (0.66, "rgb(255, 153, 0)"), (1.00, "rgb(255, 153, 0)")])
 
-fig = px.scatter_3d(df, x=0, y=1, z=2, color='true')
+fig2 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='correct', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.25, "rgb(0, 0, 102)"),
+                                             (0.25, "rgb(204, 0, 0)"), (0.50, "rgb(204, 0, 0)"),
+                                             (0.50, "rgb(255, 153, 0)"), (0.75, "rgb(255, 153, 0)"),
+                                             (0.75, "rgb(179, 179, 179)"), (1.00, "rgb(179, 179, 179)")])
 
-fig.show()
+fig3 = px.scatter_3d(df, x=0, y=1, z=2,
+                     color='wrong', opacity=0.7, size_max=5,
+                     color_continuous_scale=[(0.00, "rgb(0, 0, 102)"), (0.25, "rgb(0, 0, 102)"),
+                                             (0.25, "rgb(204, 0, 0)"), (0.50, "rgb(204, 0, 0)"),
+                                             (0.50, "rgb(255, 153, 0)"), (0.75, "rgb(255, 153, 0)"),
+                                             (0.75, "rgb(179, 179, 179)"), (1.00, "rgb(179, 179, 179)")])
 
-# for raw, pred, true in zip(raw_predictions.tolist(), predicted_labels.tolist(), test_labels_flat.tolist()):
-#     print(raw, pred, true)
+fig1.show()
+fig2.show()
+fig3.show()

@@ -6,6 +6,7 @@ import pickle
 import tensorflow as tf
 import tensorflow_hub as hub
 import tensorflow_text as text
+from sys import exit
 from matplotlib import pyplot as plt
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
@@ -20,7 +21,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_vgg_1"
+CHECKPOINT_PATH = "Saved_Models/combined_model_7"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -49,6 +50,9 @@ videoIDs, videoSpeakers, _, videoText, \
 
 train_keys = [x for x in trainVid]
 test_keys = [x for x in testVid]
+
+# For VGGish audio features only
+# val_keys = [x for x in range(1039, 1153)]
 
 
 # ================================== Prepare Text Dataset ==================================
@@ -124,63 +128,69 @@ y_train, y_val, y_test = oneHot(y_train, y_val, y_test)
 
 
 # ======================== Audio Data from VGGish Feature Embeddings ====================
-def get_vggish_embeddings(filename):
-    with open(filename, 'rb') as f:
-        vggish_emb = pickle.load(f, encoding='ASCII')
-    f.close()
-    # print(vggish_emb)
+# Not used as some pickle files output from VGGish are corrupted :(
 
-    decoded_list = []
-    value_table = vggish_emb.feature_lists.feature_list["audio_embedding"].feature
-    # print(value_table)
-    for i in range(len(value_table)):
-        decoded = np.frombuffer(value_table[i].bytes_list.value[0])
-        decoded_list.append(decoded.tolist())
-
-    # print(decoded_list)
-    return decoded_list
-
-
-vggish_embeddings_train = []
-vggish_embeddings_test = []
-
-for dialogue_id in videoLabels.keys():
-    for utterance_id in range(len(videoLabels[dialogue_id])):
-        filename = f'/home/zach/PycharmProjects/CDS/train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
-        try:
-            decoded_list = get_vggish_embeddings(filename)
-            if dialogue_id in train_keys:
-                vggish_embeddings_train.append(decoded_list)
-            elif dialogue_id in test_keys:
-                vggish_embeddings_test.append(decoded_list)
-        except:
-            print(f"{filename} needs to be deleted")
-
-
-print("completed!")
-
-vgg_train = np.asarray(vggish_embeddings_train)
-vgg_test = np.asarray(vggish_embeddings_test)
-vgg_train, vgg_val, train_labels_flat, val_labels_flat = train_test_split(vgg_train,
-                                                                          tr_val_labels_flat,
-                                                                          random_state=0)
+# def get_vggish_embeddings(filename):
+#     with open(filename, 'rb') as f:
+#         vggish_emb = pickle.load(f, encoding='ASCII')
+#     f.close()
+#
+#     decoded_list = []
+#     value_table = vggish_emb.feature_lists.feature_list["audio_embedding"].feature
+#
+#     for i in range(len(value_table)):
+#         decoded = np.frombuffer(value_table[i].bytes_list.value[0])
+#         decoded_list.append(decoded.tolist())
+#
+#     return decoded_list
+#
+#
+# vggish_embeddings_train = []
+# vggish_embeddings_test = []
+#
+# for dialogue_id in videoLabels.keys():
+#     for utterance_id in range(len(videoLabels[dialogue_id])):
+#         filename = f'/home/zach/PycharmProjects/CDS/combined_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
+#
+#         try:
+#             if dialogue_id in val_keys:
+#                 decoded_list = pickle.load(open(filename, mode='rb'))['vggish']
+#                 vggish_embeddings_train.append(decoded_list)
+#
+#             elif dialogue_id in train_keys:
+#                 decoded_list = get_vggish_embeddings(filename)
+#                 vggish_embeddings_train.append(decoded_list)
+#
+#             elif dialogue_id in test_keys:
+#                 decoded_list = pickle.load(open(filename, mode='rb'))['vggish']
+#                 vggish_embeddings_test.append(decoded_list)
+#
+#         except:
+#             print(f"{filename} needs to be deleted")
+#
+#
+# vgg_train = np.asarray(vggish_embeddings_train)
+# vgg_test = np.asarray(vggish_embeddings_test)
+# vgg_train, vgg_val, train_labels_flat, val_labels_flat = train_test_split(vgg_train,
+#                                                                           tr_val_labels_flat,
+#                                                                           random_state=0)
 
 # ============================== Create combined dataset ==================================
 # Datasets using LogRegress for Audio
-# speech_train_ds = tf.data.Dataset.from_tensor_slices(
-#     ({"audio": X_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
-# speech_test_ds = tf.data.Dataset.from_tensor_slices(
-#     ({"audio": X_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
-# speech_val_ds = tf.data.Dataset.from_tensor_slices(
-#     ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+speech_train_ds = tf.data.Dataset.from_tensor_slices(
+    ({"audio": X_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
+speech_test_ds = tf.data.Dataset.from_tensor_slices(
+    ({"audio": X_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
+speech_val_ds = tf.data.Dataset.from_tensor_slices(
+    ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
 
 # Datasets using VGGish Embeddings for Audio
-speech_train_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio": vgg_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
-speech_test_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio": vgg_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
-speech_val_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio:": vgg_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+# speech_train_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio": vgg_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
+# speech_test_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio": vgg_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
+# speech_val_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio:": vgg_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
 
 
 print("Datasets Generated!")
@@ -355,8 +365,9 @@ fig = px.scatter_3d(df, x=0,
                         z=2)
 
 fig.show()
-# summary will be done by extracting the confusion matrix
-predict_class = np.argmax(intermediate_output, axis=1)
-cm = confusion_matrix(y_test, predict_class)
 
-print(cm)
+# Confusion matrix
+# predict_class = np.argmax(intermediate_output, axis=1)
+# cm = confusion_matrix(y_test, predict_class)
+
+# print(cm)

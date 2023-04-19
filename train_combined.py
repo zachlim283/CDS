@@ -51,7 +51,7 @@ train_keys = [x for x in trainVid]
 test_keys = [x for x in testVid]
 
 
-# ================================== Prepare Datasets ==================================
+# ================================== Prepare Text Dataset ==================================
 # Train + Val Datasets
 tr_val_text = [videoSentence[x] for x in train_keys]
 tr_val_labels = [videoLabels[x] for x in train_keys]
@@ -78,7 +78,7 @@ test_labels_flat = np.array([item for sublist in test_labels for item in sublist
 test_ds = tf.data.Dataset.from_tensor_slices((test_text_flat, test_labels_flat)).batch(BATCH_SIZE)
 
 
-# ================================== Kevin's Datasets Cleaning ==================================
+# =============================== Audio Data for LogRegress ============================
 def oneHot(trainLabels, valLabels, testLabels):
     # Calculate the total number of classes
     numOfClasses = np.max(trainLabels) + 1
@@ -112,35 +112,76 @@ def flatten_audio_and_labels(audio, labels, train_keys):
 
 
 X, y = flatten_audio_and_labels(videoAudio, videoLabels, train_keys)
-
-# split_idx = int(X.shape[0] * 0.8)
-# X_main, X_test = X[:split_idx], X[split_idx:]
-# y_main, y_test = y[:split_idx], y[split_idx:]
 X_test, y_test = flatten_audio_and_labels(videoAudio, videoLabels, test_keys)
 
-# max_length = max([(X.shape[0]) for x in X])
-# input_shape = (max_length, 74)
-# batch_size = 32
-# num_epochs = 30
 
-# ================= Split data into test train and val ==================
+# Split data into test train and val
 X_train, X_val, y_train, y_val = train_test_split(X, y, random_state=0)
 
 audio_input_shape = (300,)
 output_shape = (None, 1)
 y_train, y_val, y_test = oneHot(y_train, y_val, y_test)
-# train_ds = tf.data.Dataset.from_tensor_slices((X_train, y_train)).batch(BATCH_SIZE)
-# val_ds = tf.data.Dataset.from_tensor_slices((X_val, y_val)).batch(BATCH_SIZE)
-# test_ds = tf.data.Dataset.from_tensor_slices((X_test, y_test)).batch(BATCH_SIZE)
 
+
+# ======================== Audio Data from VGGish Feature Embeddings ====================
+def get_vggish_embeddings(filename):
+    with open('./train_emb/dia0_utt0.pickle', 'rb') as f:
+        vggish_emb = pickle.load(f, encoding='ASCII')
+    f.close()
+    # print(vggish_emb)
+
+    decoded_list = []
+    value_table = vggish_emb.feature_lists.feature_list["audio_embedding"].feature
+    # print(value_table)
+    for i in range(len(value_table)):
+        decoded = np.frombuffer(value_table[i].bytes_list.value[0])
+        decoded_list.append(decoded.tolist())
+
+    # print(decoded_list)
+    return decoded_list
+
+
+vggish_embeddings_train = []
+vggish_embeddings_test = []
+
+for dialogue_id in videoLabels.keys():
+    for utterance_id in range(len(videoLabels[dialogue_id])):
+        filename = f'./train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
+        try:
+            decoded_list = get_vggish_embeddings(filename)
+            if dialogue_id in train_keys:
+                vggish_embeddings_train.append(decoded_list)
+            elif dialogue_id in test_keys:
+                vggish_embeddings_test.append(decoded_list)
+        except:
+            print(f"{filename} needs to be deleted")
+
+
+print("completed!")
+
+vgg_train = np.asarray(vggish_embeddings_train)
+vgg_test = np.asarray(vggish_embeddings_test)
+vgg_train, vgg_val, train_labels_flat, val_labels_flat = train_test_split(vgg_train,
+                                                                          tr_val_labels_flat,
+                                                                          random_state=0)
 
 # ============================== Create combined dataset ==================================
+# Datasets using LogRegress for Audio
+# speech_train_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio": X_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
+# speech_test_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio": X_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
+# speech_val_ds = tf.data.Dataset.from_tensor_slices(
+#     ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+
+# Datasets using VGGish Embeddings for Audio
 speech_train_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio": X_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
+    ({"audio": vgg_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
 speech_test_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio": X_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
+    ({"audio":vgg_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
 speech_val_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio": X_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+    ({"audio:":vgg_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+
 
 print("Datasets Generated!")
 print("Building Models...")

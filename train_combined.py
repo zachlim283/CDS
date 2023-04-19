@@ -20,7 +20,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_6"
+CHECKPOINT_PATH = "Saved_Models/combined_model_vgg_1"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -146,7 +146,7 @@ vggish_embeddings_test = []
 
 for dialogue_id in videoLabels.keys():
     for utterance_id in range(len(videoLabels[dialogue_id])):
-        filename = f'train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
+        filename = f'/home/zach/PycharmProjects/CDS/train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
         try:
             decoded_list = get_vggish_embeddings(filename)
             if dialogue_id in train_keys:
@@ -178,9 +178,9 @@ vgg_train, vgg_val, train_labels_flat, val_labels_flat = train_test_split(vgg_tr
 speech_train_ds = tf.data.Dataset.from_tensor_slices(
     ({"audio": vgg_train.astype(np.float64), "text": train_text_flat}, y_train)).batch(BATCH_SIZE)
 speech_test_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio":vgg_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
+    ({"audio": vgg_test.astype(np.float64), "text": test_text_flat}, y_test)).batch(BATCH_SIZE)
 speech_val_ds = tf.data.Dataset.from_tensor_slices(
-    ({"audio:":vgg_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
+    ({"audio:": vgg_val.astype(np.float64), "text": val_text_flat}, y_val)).batch(BATCH_SIZE)
 
 
 print("Datasets Generated!")

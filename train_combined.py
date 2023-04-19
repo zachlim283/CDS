@@ -125,7 +125,7 @@ y_train, y_val, y_test = oneHot(y_train, y_val, y_test)
 
 # ======================== Audio Data from VGGish Feature Embeddings ====================
 def get_vggish_embeddings(filename):
-    with open('./train_emb/dia0_utt0.pickle', 'rb') as f:
+    with open(filename, 'rb') as f:
         vggish_emb = pickle.load(f, encoding='ASCII')
     f.close()
     # print(vggish_emb)

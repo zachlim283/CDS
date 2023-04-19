@@ -146,7 +146,7 @@ vggish_embeddings_test = []
 
 for dialogue_id in videoLabels.keys():
     for utterance_id in range(len(videoLabels[dialogue_id])):
-        filename = f'./train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
+        filename = f'train_emb/dia{dialogue_id}_utt{utterance_id}.pickle'
         try:
             decoded_list = get_vggish_embeddings(filename)
             if dialogue_id in train_keys:

@@ -15,7 +15,7 @@ from sklearn.model_selection import train_test_split
 
 # ===================================== Parameters =====================================
 BATCH_SIZE = 32
-MODEL_PATH = 'Saved_Models/combined_model_5'
+MODEL_PATH = 'Results/combined_model_3_SELU'
 
 
 # ======================================= Admin ========================================
@@ -69,11 +69,6 @@ def flatten_audio_and_labels(audio, labels, train_keys):
     flattenLabels = [labels[x] for x in train_keys]
     df_audio = np.array([item for sublist in flattenAudio for item in sublist], dtype=object)
     df_labels = np.array([item for sublist in flattenLabels for item in sublist], dtype=int)
-
-    # flattenAudio = [y for x in audio.values() for y in x]
-    # df_audio = np.array(flattenAudio)
-    # flattenLabels = [y for x in labels.values() for y in x]
-    # df_labels = np.array(flattenLabels)
 
     return df_audio, df_labels
 

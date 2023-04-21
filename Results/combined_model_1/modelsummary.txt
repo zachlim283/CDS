@@ -1,0 +1,44 @@
+Model: "model_1"
+__________________________________________________________________________________________________
+ Layer (type)                   Output Shape         Param #     Connected to                     
+==================================================================================================
+ text (InputLayer)              [(None,)]            0           []                               
+                                                                                                  
+ audio (InputLayer)             [(None, 300)]        0           []                               
+                                                                                                  
+ model (Functional)             (None, 3)            109679876   ['text[0][0]']                   
+                                                                                                  
+ sequential (Sequential)        (None, 3)            19459       ['audio[0][0]']                  
+                                                                                                  
+ concatenate (Concatenate)      (None, 6)            0           ['model[0][0]',                  
+                                                                  'sequential[0][0]']             
+                                                                                                  
+ Dropout_0.5_1 (Dropout)        (None, 6)            0           ['concatenate[0][0]']            
+                                                                                                  
+ Classifier (Dense)             (None, 3)            21          ['Dropout_0.5_1[0][0]']          
+                                                                                                  
+==================================================================================================
+Total params: 109,699,356
+Trainable params: 109,699,355
+Non-trainable params: 1
+__________________________________________________________________________________________________
+
+Model trained using https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2
+
+===== Parameters =====
+Batch Size: 32
+Epochs: 7/50
+Learning Rate: 1e-05
+
+====== Results =======
+              precision    recall  f1-score   support
+
+           0      0.716     0.854     0.779      1256
+           1      0.400     0.004     0.008       521
+           2      0.513     0.681     0.585       833
+
+    accuracy                          0.629      2610
+   macro avg      0.543     0.513     0.457      2610
+weighted avg      0.588     0.629     0.563      2610
+
+Loss: 0.9033436179161072

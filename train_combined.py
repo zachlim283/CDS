@@ -22,7 +22,7 @@ LOSS = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 METRICS = [tf.metrics.CategoricalAccuracy()]
 OPTIMIZER = tf.keras.optimizers.Adam(learning_rate=LR)
 
-CHECKPOINT_PATH = "Saved_Models/combined_model_6"
+CHECKPOINT_PATH = "Saved_Models/combined_model_3"
 
 tf_hub_encoder = 'https://tfhub.dev/tensorflow/small_bert/bert_en_uncased_L-12_H-768_A-12/2'
 tf_hub_preprocess = 'https://tfhub.dev/tensorflow/bert_en_uncased_preprocess/3'
@@ -108,11 +108,6 @@ def flatten_audio_and_labels(audio, labels, train_keys):
     df_audio = np.array([item for sublist in flattenAudio for item in sublist], dtype=object)
     df_labels = np.array([item for sublist in flattenLabels for item in sublist], dtype=int)
 
-    # flattenAudio = [y for x in audio.values() for y in x]
-    # df_audio = np.array(flattenAudio)
-    # flattenLabels = [y for x in labels.values() for y in x]
-    # df_labels = np.array(flattenLabels)
-
     return df_audio, df_labels
 
 
@@ -175,6 +170,7 @@ y_train, y_val, y_test = oneHot(y_train, y_val, y_test)
 # vgg_train, vgg_val, train_labels_flat, val_labels_flat = train_test_split(vgg_train,
 #                                                                           tr_val_labels_flat,
 #                                                                           random_state=0)
+
 
 # ============================== Create combined dataset ==================================
 # Datasets using LogRegress for Audio
@@ -241,7 +237,7 @@ def concatenated_model(text_model=text_model, audio_model=audio_model):
     text_projections = text_model(text_input)
     audio_projections = audio_model(audio_input)
 
-    # # Cross-attention (Luong-style).
+    # # Cross-attention (Luong-style). Not functional :(
     # query_value_attention_seq = tf.keras.layers.Attention(use_scale=True, dropout=0.2)(
     # [text_projections, audio_projections]
     # )
